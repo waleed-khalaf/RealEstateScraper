@@ -1,5 +1,7 @@
 # CURRENTLY EXCLUSIVELY SEARCHES FOR PROPERTIES IN GLASGOW. NEED TO FIND WAY TO DYNAMICALLY GENERATE URL FOR OTHER
 # LOCATIONS
+# TODO: Find full post code for property then use that to find price of sold properties for DUV
+# TODO: Do analysis and write to excel file using openpyxl to automate
 
 import requests
 from requests.exceptions import HTTPError
@@ -16,24 +18,44 @@ def generate_url(location) -> str:
     """
     Generates urls of city to be searched using the rightmove api and the locationIdentifier parameter to dynamically
     generate the required url by taking in either a city name or post code as an argument. 
-    :param location: Name of city to be searched.
+    :param location: Name of city or post code to be searched.
     :return: url string
     """
-    pass
+
+    region_endpoint_url = "https://www.rightmove.co.uk/typeAhead/uknostreet/"
+    count = 0
+    for char in location.upper():
+        if count == 2:
+            region_endpoint_url += '/'
+            count = 0
+        region_endpoint_url += char
+        count += 1
+
+    region_response = requests.get(region_endpoint_url).json()
+    searched_locations = region_response['typeAheadLocations']
+
+    for entry in searched_locations:
+        confirm_location = input(f"Is {entry['displayName']} the search entry you are looking for ? Enter Y/N:").upper()
+        if confirm_location == 'Y':
+            region_code = entry['locationIdentifier']
+            return region_code
+        else:
+            continue
 
 
-def fetch_html(url):
+def fetch_html(parsed_url):
     """
-    Uses the requests module to return a response from a constructed a www.rightmove.co.uk using a city entered as an
+    Uses the requests module to return a response from a constructed a www.rightmove.co.uk entered as an
     argument.
-    :param url: url string needed to make https request.
+    :param parsed_url: url string needed to make https request.
     :return: response object from get request to city listings on rightmove.co.uk.
     """
     try:
-        rm_response = requests.get(url)
+        rm_response = requests.get(parsed_url)
         rm_response.raise_for_status()
     except HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
+        return
     else:
         print(f"Success | Status Code: {rm_response.status_code}")
         return rm_response
@@ -78,7 +100,6 @@ def site_parser(response) -> list:
     return results
 
 
-# TODO: Export values to csv
 # TODO: Exception handling if file isn't there.
 def write_to_csv(data_to_write: list):
     """
@@ -96,10 +117,6 @@ def write_to_csv(data_to_write: list):
     print("Stored results to 'RealEstateData.csv'")
 
 
-# TODO: Using the addresses from the scraped listings retrieve the post codes and check for comparables for DUV part of
-#  calculations which can then be added to the csv file.
-
-# TODO: Using data that has been scraped and performing calculations to determine deals
 # --------------------CONTROL FLOW OF PROGRAM--------------------:
 
 # GENERATE URL (DYNAMICALLY GENERATED OR HARD CODED)
@@ -108,15 +125,15 @@ def write_to_csv(data_to_write: list):
 
 # EXPORT RESULTS OF SCRAPING TO CSV
 
-csv_results = []
-# Scraping the results from the search and saving to csv file
-for page in range(1, 42):
-    page_index = 24 * page
-    url = f'https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=REGION%5E550&' \
-          f'index={page_index}&propertyTypes=&mustHave=&dontShow=&furnishTypes=&keywords='
-    response = fetch_html(url)
-    data = site_parser(response)
-    csv_results.append(data)
-
-
-write_to_csv(csv_results)
+# csv_results = []
+# # Scraping the results from the search and saving to csv file
+# for page in range(1, 42):
+#     page_index = 24 * page
+#     url = f'https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=REGION%5E550&' \
+#           f'index={page_index}&propertyTypes=&mustHave=&dontShow=&furnishTypes=&keywords='
+#     response = fetch_html(url)
+#     data = site_parser(response)
+#     csv_results.append(data)
+#
+#
+# write_to_csv(csv_results)
