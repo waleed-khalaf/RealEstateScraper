@@ -1,5 +1,7 @@
 # CURRENTLY EXCLUSIVELY SEARCHES FOR PROPERTIES IN GLASGOW. NEED TO FIND WAY TO DYNAMICALLY GENERATE URL FOR OTHER
 # LOCATIONS
+# TODO: Find full post code for property then use that to find price of sold properties for DUV
+# TODO: Do analysis and write to excel file using openpyxl to automate
 
 import requests
 from requests.exceptions import HTTPError
@@ -19,7 +21,6 @@ def generate_url(location) -> str:
     :param location: Name of city or post code to be searched.
     :return: url string
     """
-    location = "aberdeen"
 
     region_endpoint_url = "https://www.rightmove.co.uk/typeAhead/uknostreet/"
     count = 0
@@ -32,8 +33,7 @@ def generate_url(location) -> str:
 
     region_response = requests.get(region_endpoint_url).json()
     searched_locations = region_response['typeAheadLocations']
-    # Need to iterate through the display names of each of the locations in the dictionary
-    # then allow the user to choose one of, if any, of the options that are returned from the search.
+
     for entry in searched_locations:
         confirm_location = input(f"Is {entry['displayName']} the search entry you are looking for ? Enter Y/N:").upper()
         if confirm_location == 'Y':
@@ -55,6 +55,7 @@ def fetch_html(parsed_url):
         rm_response.raise_for_status()
     except HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
+        return
     else:
         print(f"Success | Status Code: {rm_response.status_code}")
         return rm_response
@@ -99,7 +100,6 @@ def site_parser(response) -> list:
     return results
 
 
-# TODO: Export values to csv
 # TODO: Exception handling if file isn't there.
 def write_to_csv(data_to_write: list):
     """
@@ -117,10 +117,6 @@ def write_to_csv(data_to_write: list):
     print("Stored results to 'RealEstateData.csv'")
 
 
-# TODO: Using the addresses from the scraped listings retrieve the post codes and check for comparables for DUV part of
-#  calculations which can then be added to the csv file.
-
-# TODO: Using data that has been scraped and performing calculations to determine deals
 # --------------------CONTROL FLOW OF PROGRAM--------------------:
 
 # GENERATE URL (DYNAMICALLY GENERATED OR HARD CODED)
